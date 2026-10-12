@@ -29,5 +29,53 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'nexus-db-user',
+                        variable: 'POSTGRES_USER'
+                    ),
+                    string(
+                        credentialsId: 'nexus-db-password',
+                        variable: 'POSTGRES_PASSWORD'
+                    ),
+                    string(
+                        credentialsId: 'nexus-db-name',
+                        variable: 'POSTGRES_DB'
+                    ),
+                    string(
+                        credentialsId: 'nexus-db-port',
+                        variable: 'POSTGRES_PORT'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        export BACKEND_IMAGE="nexus-backend:${BUILD_NUMBER}"
+
+                        docker compose \
+                            --project-name backend \
+                            -f backend/docker-compose.yml \
+                            up -d --no-deps --no-build backend
+
+                        echo "Waiting for backend health check..."
+
+                        for i in $(seq 1 30); do
+                            if curl -fsS http://localhost:8000/health; then
+                                echo "Backend is healthy!"
+                                exit 0
+                            fi
+
+                            sleep 2
+                        done
+
+                        echo "Backend health check failed."
+                        exit 1
+                    '''
+                }
+            }
+        }
     }
 }
