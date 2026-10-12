@@ -12,6 +12,8 @@ pipeline {
             steps {
                 dir('backend') {
                     sh '''
+                        set -eu
+
                         python3 -m venv ci-venv
                         ci-venv/bin/pip install -r requirements.txt
                         ci-venv/bin/python -m pytest -v
@@ -24,6 +26,7 @@ pipeline {
             steps {
                 dir('backend') {
                     sh '''
+                        set -eu
                         docker build -t nexus-backend:${BUILD_NUMBER} .
                     '''
                 }
@@ -55,6 +58,8 @@ pipeline {
 
                         export BACKEND_IMAGE="nexus-backend:${BUILD_NUMBER}"
 
+                        echo "Deploying ${BACKEND_IMAGE}"
+
                         docker compose \
                             --project-name backend \
                             -f backend/docker-compose.yml \
@@ -64,6 +69,7 @@ pipeline {
 
                         for i in $(seq 1 30); do
                             if curl -fsS http://localhost:8000/health; then
+                                echo
                                 echo "Backend is healthy!"
                                 exit 0
                             fi
@@ -72,10 +78,21 @@ pipeline {
                         done
 
                         echo "Backend health check failed."
+                        docker logs --tail 60 nexus-backend
                         exit 1
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'NexusDeploy pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'NexusDeploy pipeline failed. Check Console Output.'
         }
     }
 }
