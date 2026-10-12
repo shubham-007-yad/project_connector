@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: nexus-backend:1.1
+    image: ${BACKEND_IMAGE:-nexus-backend:1.1}
     container_name: nexus-backend
     restart: unless-stopped
     environment:
@@ -43,3 +43,6 @@ services:
 volumes:
   nexus_postgres_data:
     external: true
+
+
+  
