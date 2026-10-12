@@ -19,5 +19,15 @@ pipeline {
                 }
             }
         }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        docker build -t nexus-backend:${BUILD_NUMBER} .
+                    '''
+                }
+            }
+        }
     }
 }
